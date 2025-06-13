@@ -1,0 +1,52 @@
+#!/bin/bash
+
+
+tmp=.tmp-prettier-build
+
+convert=$tmp/tmp-prettier-convert.js
+
+config=.prettierrc
+
+if [ -d "node_modules" ]; then
+  echo -e "\033[0;33m⚠️  WARNING:\033[0m \033[1mnode_modules\033[0m directory exists."
+  echo -e "Please configure Prettier using the \033[1m\"prettier\"\033[0m key in your package.json file"
+
+  exit 0
+fi
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo -e "\033[0;33m⚠️  WARNING:\033[0m \033[1mnpm\033[0m is not available in your PATH."
+  echo -e "Please ensure npm is installed and accessible from your shell."
+  exit 1
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+  echo -e "\033[0;33m⚠️  WARNING:\033[0m \033[1mnode\033[0m is not available in your PATH."
+  echo -e "Please ensure node.js is installed and accessible from your shell."
+  exit 1
+fi
+
+if [ -d "$tmp" ]; then
+  echo -e "\033[0;31m❌ ERROR:\033[0m Temporary directory \033[1m$tmp\033[0m already exists."
+  echo -e "Please remove or rename it before continuing."
+  exit 1
+fi
+
+mkdir $tmp
+
+npm i @mpietrucha/prettier --prefix $tmp --silent
+npm i yaml --prefix $tmp --silent
+
+npm pkg set type=module --prefix $tmp
+
+cat > "$convert" <<EOF
+import config from '@mpietrucha/prettier';
+import { writeFileSync } from 'fs';
+import { stringify } from 'yaml';
+delete config.plugins;
+writeFileSync('$config', stringify(config))
+EOF
+
+node $convert
+
+rm -rf $tmp
